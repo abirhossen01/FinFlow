@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FinFlow — Personal Finance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  :root {
+    --bg: #0b0f1a;
+    --bg2: #111827;
+    --bg3: #1a2235;
+    --card: #151e2d;
+    --card2: #1c2740;
+    --border: #1f2f48;
+    --gold: #f0b429;
+    --gold2: #fcd34d;
+    --gold-dim: rgba(240,180,41,0.12);
+    --red: #f87171;
+    --red-dim: rgba(248,113,113,0.12);
+    --green: #34d399;
+    --green-dim: rgba(52,211,153,0.12);
+    --blue: #60a5fa;
+    --blue-dim: rgba(96,165,250,0.12);
+    --purple: #a78bfa;
+    --purple-dim: rgba(167,139,250,0.12);
+    --text: #f0f4ff;
+    --text2: #94a3b8;
+    --text3: #4b6080;
+    --radius: 16px;
+    --radius-sm: 10px;
+    --shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { height:100%; background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; overflow:hidden; }
+
+  /* APP SHELL */
+  #app { display:flex; flex-direction:column; height:100vh; max-width:480px; margin:0 auto; position:relative; background:var(--bg); }
+
+  /* HEADER */
+  header {
+    padding: 18px 20px 14px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    position: relative; z-index: 10;
+  }
+  .logo { font-family:'Playfair Display',serif; font-size:22px; font-weight:700; }
+  .logo span { color:var(--gold); }
+  .header-right { display:flex; gap:10px; align-items:center; }
+  .month-badge {
+    background:var(--gold-dim); color:var(--gold); border:1px solid rgba(240,180,41,0.25);
+    font-size:12px; font-weight:600; padding:5px 12px; border-radius:20px; cursor:pointer;
+  }
+  .avatar {
+    width:34px; height:34px; border-radius:50%;
+    background: linear-gradient(135deg,var(--gold),#e07b00);
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px; font-weight:700; cursor:pointer; color:#000;
+    overflow:hidden; flex-shrink:0;
+    border: 2px solid rgba(240,180,41,0.4);
+  }
+  .avatar img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+
+  /* Profile picture upload */
+  .pic-upload-wrap {
+    position:relative; width:90px; height:90px; margin:0 auto 16px; cursor:pointer;
+  }
+  .pic-upload-wrap input[type=file] { display:none; }
+  .pic-circle {
+    width:90px; height:90px; border-radius:50%;
+    background:linear-gradient(135deg,var(--gold),#e07b00);
+    display:flex; align-items:center; justify-content:center;
+    font-size:32px; font-weight:700; color:#000;
+    overflow:hidden;
+    border: 3px solid rgba(240,180,41,0.5);
+    transition: border-color .2s;
+  }
+  .pic-circle img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+  .pic-edit-btn {
+    position:absolute; bottom:0; right:0;
+    width:28px; height:28px; border-radius:50%;
+    background:var(--gold); color:#000;
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px; border:2px solid var(--bg2);
+    cursor:pointer; transition:transform .2s;
+  }
+  .pic-edit-btn:hover { transform:scale(1.15); }
+  .pic-upload-wrap:hover .pic-circle { border-color:var(--gold); }
+
+  /* Remove photo btn */
+  .btn-remove-pic {
+    background:var(--red-dim); color:var(--red);
+    border:1px solid rgba(248,113,113,0.3);
+    border-radius:10px; font-family:'DM Sans',sans-serif;
+    font-size:13px; padding:8px 16px; cursor:pointer;
+    display:none; margin:0 auto 12px; transition:opacity .2s;
+  }
+  .btn-remove-pic:hover { opacity:.8; }
+
+  /* PAGES */
+  .page { display:none; flex:1; overflow-y:auto; padding:16px; }
+  .page.active { display:block; }
+  .page::-webkit-scrollbar { width:3px; }
+  .page::-webkit-scrollbar-track { background:transparent; }
+  .page::-webkit-scrollbar-thumb { background:var(--border); border-radius:10px; }
+
+  /* NAV */
+  nav {
+    display:flex; justify-content:space-around; align-items:center;
+    background:var(--bg2); border-top:1px solid var(--border);
+    padding: 8px 0 12px;
+  }
+  .nav-btn {
+    display:flex; flex-direction:column; align-items:center; gap:4px;
+    cursor:pointer; background:none; border:none; color:var(--text3);
+    font-family:'DM Sans',sans-serif; font-size:10px; font-weight:500;
+    padding:6px 16px; border-radius:12px; transition:all .2s;
+  }
+  .nav-btn.active { color:var(--gold); }
+  .nav-btn .nav-icon { font-size:20px; }
+
+  /* CARDS */
+  .card {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:var(--radius); padding:18px; margin-bottom:14px;
+  }
+  .card-sm { padding:14px; border-radius:var(--radius-sm); }
+
+  /* SUMMARY STRIP */
+  .summary-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+  .sum-card {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:var(--radius-sm); padding:14px 16px;
+  }
+  .sum-label { font-size:11px; color:var(--text3); font-weight:500; margin-bottom:4px; }
+  .sum-val { font-size:20px; font-weight:600; }
+  .sum-val.income { color:var(--green); }
+  .sum-val.expense { color:var(--red); }
+  .sum-val.saving { color:var(--gold); }
+  .sum-val.invest { color:var(--purple); }
+  .sum-change { font-size:11px; color:var(--text3); margin-top:3px; }
+
+  /* BALANCE HERO */
+  .balance-hero {
+    background: linear-gradient(135deg, #1a2a4a 0%, #0d1c35 100%);
+    border:1px solid rgba(96,165,250,0.2);
+    border-radius:var(--radius); padding:22px 20px; margin-bottom:14px;
+    position:relative; overflow:hidden;
+  }
+  .balance-hero::before {
+    content:''; position:absolute; top:-40px; right:-40px;
+    width:140px; height:140px; border-radius:50%;
+    background:radial-gradient(circle, rgba(240,180,41,0.15) 0%, transparent 70%);
+  }
+  .balance-label { font-size:12px; color:var(--text2); margin-bottom:6px; }
+  .balance-amount { font-family:'Playfair Display',serif; font-size:36px; font-weight:700; color:#fff; }
+  .balance-sub { font-size:12px; color:var(--text3); margin-top:4px; }
+  .progress-bar-wrap { margin-top:14px; }
+  .progress-label { display:flex; justify-content:space-between; font-size:11px; color:var(--text3); margin-bottom:6px; }
+  .progress-track { background:var(--border); border-radius:10px; height:6px; overflow:hidden; }
+  .progress-fill { height:100%; border-radius:10px; transition:width .5s ease; }
+
+  /* SECTION TITLE */
+  .section-title {
+    font-size:13px; font-weight:600; color:var(--text2);
+    text-transform:uppercase; letter-spacing:.06em; margin-bottom:12px;
+  }
+
+  /* TRANSACTION LIST */
+  .tx-item {
+    display:flex; align-items:center; gap:12px;
+    padding:12px 0; border-bottom:1px solid var(--border);
+  }
+  .tx-item:last-child { border-bottom:none; }
+  .tx-icon {
+    width:40px; height:40px; border-radius:12px;
+    display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;
+  }
+  .tx-info { flex:1; }
+  .tx-name { font-size:14px; font-weight:500; }
+  .tx-meta { font-size:11px; color:var(--text3); margin-top:2px; }
+  .tx-amt { font-size:15px; font-weight:600; }
+  .tx-amt.neg { color:var(--red); }
+  .tx-amt.pos { color:var(--green); }
+  .tx-delete { background:none; border:none; color:var(--text3); cursor:pointer; font-size:16px; padding:4px; }
+
+  /* BUTTONS */
+  .btn-gold {
+    background:linear-gradient(135deg,var(--gold),#e07b00);
+    color:#000; border:none; border-radius:12px;
+    font-family:'DM Sans',sans-serif; font-weight:700; font-size:15px;
+    padding:14px 28px; cursor:pointer; width:100%; transition:opacity .2s;
+  }
+  .btn-gold:hover { opacity:.9; }
+  .btn-outline {
+    background:transparent; color:var(--text2); border:1px solid var(--border);
+    border-radius:12px; font-family:'DM Sans',sans-serif; font-weight:500; font-size:14px;
+    padding:10px 20px; cursor:pointer; transition:all .2s;
+  }
+  .btn-outline:hover { border-color:var(--gold); color:var(--gold); }
+  .btn-icon {
+    width:44px; height:44px; border-radius:12px;
+    background:var(--gold-dim); border:1px solid rgba(240,180,41,0.25);
+    color:var(--gold); font-size:20px; cursor:pointer; display:flex;
+    align-items:center; justify-content:center; transition:all .2s;
+  }
+
+  /* FORMS */
+  .form-group { margin-bottom:14px; }
+  .form-label { font-size:12px; color:var(--text2); font-weight:500; margin-bottom:6px; display:block; }
+  .form-input, .form-select {
+    width:100%; background:var(--bg3); border:1px solid var(--border);
+    border-radius:10px; padding:12px 14px; color:var(--text);
+    font-family:'DM Sans',sans-serif; font-size:14px; outline:none;
+    transition:border-color .2s;
+  }
+  .form-input:focus, .form-select:focus { border-color:var(--gold); }
+  .form-select option { background:var(--bg2); }
+  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+
+  /* TABS */
+  .tab-strip {
+    display:flex; gap:8px; margin-bottom:16px;
+    background:var(--bg2); border:1px solid var(--border);
+    border-radius:12px; padding:4px;
+  }
+  .tab-btn {
+    flex:1; padding:8px; border-radius:9px; border:none;
+    background:transparent; color:var(--text3);
+    font-family:'DM Sans',sans-serif; font-size:13px; font-weight:500;
+    cursor:pointer; transition:all .2s;
+  }
+  .tab-btn.active { background:var(--card2); color:var(--gold); }
+
+  /* BUDGET BAR */
+  .budget-item { margin-bottom:16px; }
+  .budget-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .budget-name { font-size:13px; font-weight:500; display:flex; align-items:center; gap:6px; }
+  .budget-vals { font-size:12px; color:var(--text3); }
+  .budget-track { background:var(--border); border-radius:10px; height:8px; overflow:hidden; }
+  .budget-fill { height:100%; border-radius:10px; transition:width .5s ease; }
+  .budget-fill.ok { background:var(--green); }
+  .budget-fill.warn { background:var(--gold); }
+  .budget-fill.over { background:var(--red); }
+
+  /* ALERT */
+  .alert {
+    background:var(--red-dim); border:1px solid rgba(248,113,113,0.3);
+    border-radius:12px; padding:12px 16px; margin-bottom:12px;
+    font-size:13px; color:var(--red); display:flex; gap:10px; align-items:flex-start;
+  }
+  .alert-warn {
+    background: rgba(240,180,41,0.1); border:1px solid rgba(240,180,41,0.3);
+    color:var(--gold);
+  }
+
+  /* TIPS */
+  .tip-card {
+    background:var(--green-dim); border:1px solid rgba(52,211,153,0.2);
+    border-radius:12px; padding:14px 16px; margin-bottom:10px;
+    display:flex; gap:12px; align-items:flex-start;
+  }
+  .tip-icon { font-size:22px; flex-shrink:0; }
+  .tip-text { font-size:13px; color:var(--text2); line-height:1.5; }
+  .tip-text strong { color:var(--green); display:block; margin-bottom:2px; font-size:14px; }
+
+  /* PROFILE */
+  .profile-avatar-big {
+    width:80px; height:80px; border-radius:50%;
+    background:linear-gradient(135deg,var(--gold),#e07b00);
+    display:flex; align-items:center; justify-content:center;
+    font-size:30px; font-weight:700; color:#000; margin:0 auto 12px;
+    overflow:hidden; border:3px solid rgba(240,180,41,0.4);
+  }
+  .profile-avatar-big img { width:100%; height:100%; object-fit:cover; }
+  .profile-name-big { text-align:center; font-family:'Playfair Display',serif; font-size:22px; margin-bottom:4px; }
+  .profile-sub { text-align:center; color:var(--text3); font-size:13px; margin-bottom:20px; }
+
+  /* CHART WRAP */
+  .chart-wrap { position:relative; height:200px; }
+  .chart-wrap-lg { position:relative; height:240px; }
+
+  /* FAB */
+  .fab {
+    position:fixed; bottom:80px; right:24px;
+    width:54px; height:54px; border-radius:50%;
+    background:linear-gradient(135deg,var(--gold),#e07b00);
+    border:none; color:#000; font-size:26px; cursor:pointer;
+    box-shadow:0 6px 20px rgba(240,180,41,0.4);
+    display:flex; align-items:center; justify-content:center;
+    transition:transform .2s;
+    z-index:20;
+  }
+  .fab:hover { transform:scale(1.1); }
+
+  /* MODAL */
+  .modal-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,0.7);
+    z-index:50; display:none; align-items:flex-end; justify-content:center;
+  }
+  .modal-overlay.open { display:flex; }
+  .modal {
+    background:var(--bg2); border:1px solid var(--border);
+    border-radius:24px 24px 0 0; padding:20px 20px 32px;
+    width:100%; max-width:480px;
+    animation:slideUp .3s ease;
+  }
+  @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+  .modal-handle { width:40px; height:4px; background:var(--border); border-radius:10px; margin:0 auto 20px; }
+  .modal-title { font-family:'Playfair Display',serif; font-size:20px; margin-bottom:18px; }
+
+  /* TYPE TOGGLE */
+  .type-toggle { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:16px; }
+  .type-btn {
+    padding:8px 4px; border-radius:10px; border:1px solid var(--border);
+    background:transparent; color:var(--text3); font-size:11px; font-weight:600;
+    cursor:pointer; text-align:center; transition:all .2s;
+  }
+  .type-btn.active-expense { background:var(--red-dim); border-color:rgba(248,113,113,0.4); color:var(--red); }
+  .type-btn.active-income { background:var(--green-dim); border-color:rgba(52,211,153,0.4); color:var(--green); }
+  .type-btn.active-saving { background:var(--gold-dim); border-color:rgba(240,180,41,0.4); color:var(--gold); }
+  .type-btn.active-invest { background:var(--purple-dim); border-color:rgba(167,139,250,0.4); color:var(--purple); }
+
+  /* STAT ROW */
+  .stat-row { display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border); }
+  .stat-row:last-child { border-bottom:none; }
+  .stat-key { font-size:13px; color:var(--text2); }
+  .stat-val { font-size:13px; font-weight:600; }
+
+  /* MONTH PICKER */
+  .month-modal {
+    position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+    background:var(--bg2); border:1px solid var(--border); border-radius:20px;
+    padding:20px; z-index:60; display:none; width:300px;
+  }
+  .month-modal.open { display:block; }
+  .month-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:14px; }
+  .month-item {
+    padding:10px 6px; text-align:center; border-radius:10px;
+    border:1px solid var(--border); cursor:pointer;
+    font-size:13px; font-weight:500; transition:all .2s;
+  }
+  .month-item:hover { border-color:var(--gold); color:var(--gold); }
+  .month-item.selected { background:var(--gold-dim); border-color:var(--gold); color:var(--gold); }
+  .overlay-bg {
+    position:fixed; inset:0; background:rgba(0,0,0,0.6);
+    z-index:55; display:none;
+  }
+  .overlay-bg.open { display:block; }
+
+  /* EMPTY */
+  .empty { text-align:center; padding:30px 0; color:var(--text3); }
+  .empty .empty-icon { font-size:40px; margin-bottom:10px; }
+  .empty p { font-size:13px; }
+
+  /* SCROLL CONTENT */
+  .scroll-content { padding-bottom:100px; }
+
+  /* Animations */
+  .fade-in { animation:fadeIn .4s ease; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+  /* onboarding */
+  #onboarding {
+    position:fixed; inset:0; background:var(--bg); z-index:100;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:30px;
+  }
+  .onboard-logo { font-family:'Playfair Display',serif; font-size:36px; font-weight:700; margin-bottom:8px; }
+  .onboard-logo span { color:var(--gold); }
+  .onboard-sub { color:var(--text2); font-size:14px; text-align:center; margin-bottom:36px; line-height:1.6; }
+  .onboard-form { width:100%; max-width:360px; }
+
+  /* Badge */
+  .badge { display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:600;
+    padding:3px 10px; border-radius:20px; }
+  .badge-green { background:var(--green-dim); color:var(--green); }
+  .badge-red { background:var(--red-dim); color:var(--red); }
+  .badge-gold { background:var(--gold-dim); color:var(--gold); }
+</style>
+</head>
+<body>
+
+<!-- ONBOARDING -->
+<div id="onboarding">
+  <div style="font-size:60px;margin-bottom:16px;">💰</div>
+  <div class="onboard-logo">Fin<span>Flow</span></div>
+  <div class="onboard-sub">আপনার অর্থের সম্পূর্ণ নিয়ন্ত্রণ নিন।<br>স্মার্ট ট্র্যাকিং, বিশ্লেষণ ও পরিকল্পনা।</div>
+  <div class="onboard-form">
+    <!-- Profile pic upload in onboarding -->
+    <div style="text-align:center;margin-bottom:20px;">
+      <div class="pic-upload-wrap" onclick="document.getElementById('ob-pic-input').click()">
+        <div class="pic-circle" id="ob-pic-circle">😊</div>
+        <div class="pic-edit-btn">📷</div>
+        <input type="file" id="ob-pic-input" accept="image/*" onchange="handlePicUpload(this,'ob-pic-circle')">
+      </div>
+      <div style="font-size:12px;color:var(--text3);">প্রোফাইল ছবি যোগ করুন (ঐচ্ছিক)</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">আপনার নাম</label>
+      <input class="form-input" id="ob-name" placeholder="যেমন: Abir Hossen" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">মাসিক আয় (টাকা)</label>
+      <input class="form-input" id="ob-income" type="number" placeholder="যেমন: 25000" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">মাসিক সঞ্চয় লক্ষ্য (%)</label>
+      <input class="form-input" id="ob-saving-pct" type="number" placeholder="যেমন: 20" />
+    </div>
+    <button class="btn-gold" onclick="completeOnboarding()">শুরু করুন →</button>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" style="display:none;">
+  <header>
+    <div class="logo">Fin<span>Flow</span></div>
+    <div class="header-right">
+      <div class="month-badge" onclick="openMonthPicker()" id="month-badge">মার্চ ২০২৬</div>
+      <div class="avatar" id="header-avatar" onclick="goPage('profile')">A</div>
+    </div>
+  </header>
+
+  <!-- DASHBOARD PAGE -->
+  <div class="page active scroll-content" id="page-dashboard">
+    <!-- Alerts placeholder -->
+    <div id="alert-area"></div>
+
+    <!-- Balance Hero -->
+    <div class="balance-hero fade-in">
+      <div class="balance-label">এই মাসে নেট ব্যালেন্স</div>
+      <div class="balance-amount" id="dash-balance">৳ ০</div>
+      <div class="balance-sub" id="dash-balance-sub">আয় − খরচ</div>
+      <div class="progress-bar-wrap">
+        <div class="progress-label">
+          <span>বাজেট ব্যবহার</span>
+          <span id="budget-pct-label">০%</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="budget-fill" style="width:0%; background:var(--green);"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary Grid -->
+    <div class="summary-grid fade-in">
+      <div class="sum-card">
+        <div class="sum-label">💚 মোট আয়</div>
+        <div class="sum-val income" id="dash-income">৳ ০</div>
+      </div>
+      <div class="sum-card">
+        <div class="sum-label">🔴 মোট খরচ</div>
+        <div class="sum-val expense" id="dash-expense">৳ ০</div>
+      </div>
+      <div class="sum-card">
+        <div class="sum-label">✨ সঞ্চয়</div>
+        <div class="sum-val saving" id="dash-saving">৳ ০</div>
+      </div>
+      <div class="sum-card">
+        <div class="sum-label">📈 বিনিয়োগ</div>
+        <div class="sum-val invest" id="dash-invest">৳ ০</div>
+      </div>
+    </div>
+
+    <!-- Mini Chart -->
+    <div class="card fade-in">
+      <div class="section-title">এই সপ্তাহের খরচ</div>
+      <div class="chart-wrap">
+        <canvas id="weekChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Recent Transactions -->
+    <div class="card fade-in">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div class="section-title" style="margin:0;">সাম্প্রতিক লেনদেন</div>
+        <span style="font-size:12px;color:var(--gold);cursor:pointer;" onclick="goPage('tracker')">সব দেখুন</span>
+      </div>
+      <div id="recent-tx">
+        <div class="empty"><div class="empty-icon">📋</div><p>কোনো লেনদেন নেই</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRACKER PAGE -->
+  <div class="page scroll-content" id="page-tracker">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="font-family:'Playfair Display',serif;font-size:22px;">লেনদেন ট্র্যাকার</div>
+      <button class="btn-icon" onclick="openAddModal()">＋</button>
+    </div>
+
+    <!-- Filter tabs -->
+    <div class="tab-strip">
+      <button class="tab-btn active" onclick="filterTx('all',this)">সব</button>
+      <button class="tab-btn" onclick="filterTx('expense',this)">খরচ</button>
+      <button class="tab-btn" onclick="filterTx('income',this)">আয়</button>
+      <button class="tab-btn" onclick="filterTx('saving',this)">সঞ্চয়</button>
+    </div>
+
+    <div id="tx-list">
+      <div class="empty"><div class="empty-icon">💳</div><p>+ বাটন দিয়ে লেনদেন যোগ করুন</p></div>
+    </div>
+  </div>
+
+  <!-- BUDGET PAGE -->
+  <div class="page scroll-content" id="page-budget">
+    <div style="font-family:'Playfair Display',serif;font-size:22px;margin-bottom:16px;">বাজেট লক্ষ্যমাত্রা</div>
+
+    <div class="card fade-in">
+      <div class="section-title">নতুন বাজেট সেট করুন</div>
+      <div class="form-group">
+        <label class="form-label">ক্যাটেগরি</label>
+        <select class="form-select" id="budget-cat">
+          <option value="খাবার">🍽️ খাবার</option>
+          <option value="যাতায়াত">🚗 যাতায়াত</option>
+          <option value="বিল">⚡ বিল ও ইউটিলিটি</option>
+          <option value="শপিং">🛍️ শপিং</option>
+          <option value="বিনোদন">🎬 বিনোদন</option>
+          <option value="স্বাস্থ্য">💊 স্বাস্থ্য</option>
+          <option value="শিক্ষা">📚 শিক্ষা</option>
+          <option value="অন্যান্য">📦 অন্যান্য</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">মাসিক সীমা (৳)</label>
+        <input class="form-input" type="number" id="budget-limit" placeholder="যেমন: 5000" />
+      </div>
+      <button class="btn-gold" onclick="saveBudget()">বাজেট সেভ করুন</button>
+    </div>
+
+    <div class="card">
+      <div class="section-title">বর্তমান বাজেট স্ট্যাটাস</div>
+      <div id="budget-list">
+        <div class="empty"><div class="empty-icon">🎯</div><p>কোনো বাজেট সেট করা হয়নি</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ANALYTICS PAGE -->
+  <div class="page scroll-content" id="page-analytics">
+    <div style="font-family:'Playfair Display',serif;font-size:22px;margin-bottom:16px;">বিশ্লেষণ</div>
+
+    <!-- Tabs -->
+    <div class="tab-strip">
+      <button class="tab-btn active" onclick="switchAnalyticsTab('pie',this)">পাই চার্ট</button>
+      <button class="tab-btn" onclick="switchAnalyticsTab('trend',this)">মাসিক ট্রেন্ড</button>
+      <button class="tab-btn" onclick="switchAnalyticsTab('stats',this)">পরিসংখ্যান</button>
+    </div>
+
+    <!-- Pie Chart -->
+    <div id="analytics-pie">
+      <div class="card">
+        <div class="section-title">ক্যাটেগরি অনুযায়ী খরচ</div>
+        <div class="chart-wrap">
+          <canvas id="pieChart"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="section-title">ক্যাটেগরি বিস্তারিত</div>
+        <div id="cat-breakdown"></div>
+      </div>
+    </div>
+
+    <!-- Trend -->
+    <div id="analytics-trend" style="display:none;">
+      <div class="card">
+        <div class="section-title">৬ মাসের ট্রেন্ড</div>
+        <div class="chart-wrap-lg">
+          <canvas id="trendChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div id="analytics-stats" style="display:none;">
+      <div class="card">
+        <div class="section-title">মাসিক পরিসংখ্যান</div>
+        <div id="stats-content"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">💡 সঞ্চয় পরামর্শ</div>
+        <div id="tips-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROFILE PAGE -->
+  <div class="page scroll-content" id="page-profile">
+    <div id="profile-header"></div>
+    <div class="card">
+      <div class="section-title">প্রোফাইল ছবি পরিবর্তন করুন</div>
+      <div style="text-align:center;margin-bottom:6px;">
+        <div class="pic-upload-wrap" style="margin-bottom:10px;" onclick="document.getElementById('profile-pic-input').click()">
+          <div class="pic-circle" id="profile-pic-circle">A</div>
+          <div class="pic-edit-btn">📷</div>
+          <input type="file" id="profile-pic-input" accept="image/*" onchange="handlePicUpload(this,'profile-pic-circle',true)">
+        </div>
+        <button class="btn-remove-pic" id="remove-pic-btn" onclick="removePic()">🗑 ছবি সরিয়ে নিন</button>
+        <div style="font-size:12px;color:var(--text3);">ছবিতে ট্যাপ করুন পরিবর্তন করতে</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title">তথ্য আপডেট করুন</div>
+      <div class="form-group">
+        <label class="form-label">নাম</label>
+        <input class="form-input" id="p-name" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">মাসিক আয় (৳)</label>
+        <input class="form-input" type="number" id="p-income" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">সঞ্চয় লক্ষ্য (%)</label>
+        <input class="form-input" type="number" id="p-saving-pct" />
+      </div>
+      <button class="btn-gold" onclick="saveProfile()">প্রোফাইল সেভ করুন</button>
+    </div>
+    <div class="card" style="margin-top:0;">
+      <div class="section-title">📊 সামগ্রিক সারাংশ</div>
+      <div id="profile-stats"></div>
+    </div>
+    <div style="margin-top:16px;padding-bottom:20px;">
+      <button class="btn-outline" style="width:100%;color:var(--red);border-color:rgba(248,113,113,0.3);" onclick="resetApp()">সব ডেটা মুছুন</button>
+    </div>
+  </div>
+
+  <!-- FAB -->
+  <button class="fab" onclick="openAddModal()">＋</button>
+
+  <!-- NAV -->
+  <nav>
+    <button class="nav-btn active" id="nav-dashboard" onclick="goPage('dashboard')">
+      <span class="nav-icon">🏠</span>হোম
+    </button>
+    <button class="nav-btn" id="nav-tracker" onclick="goPage('tracker')">
+      <span class="nav-icon">💳</span>ট্র্যাকার
+    </button>
+    <button class="nav-btn" id="nav-budget" onclick="goPage('budget')">
+      <span class="nav-icon">🎯</span>বাজেট
+    </button>
+    <button class="nav-btn" id="nav-analytics" onclick="goPage('analytics')">
+      <span class="nav-icon">📊</span>বিশ্লেষণ
+    </button>
+    <button class="nav-btn" id="nav-profile" onclick="goPage('profile')">
+      <span class="nav-icon">👤</span>প্রোফাইল
+    </button>
+  </nav>
+</div>
+
+<!-- ADD TRANSACTION MODAL -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">লেনদেন যোগ করুন</div>
+    <div class="type-toggle">
+      <button class="type-btn active-expense" id="type-expense" onclick="setType('expense')">🔴 খরচ</button>
+      <button class="type-btn" id="type-income" onclick="setType('income')">💚 আয়</button>
+      <button class="type-btn" id="type-saving" onclick="setType('saving')">✨ সঞ্চয়</button>
+      <button class="type-btn" id="type-invest" onclick="setType('invest')">📈 বিনিয়োগ</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">বিবরণ</label>
+      <input class="form-input" id="tx-desc" placeholder="যেমন: বাজার খরচ" />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">পরিমাণ (৳)</label>
+        <input class="form-input" type="number" id="tx-amount" placeholder="০" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">তারিখ</label>
+        <input class="form-input" type="date" id="tx-date" />
+      </div>
+    </div>
+    <div class="form-group" id="cat-group">
+      <label class="form-label">ক্যাটেগরি</label>
+      <select class="form-select" id="tx-cat">
+        <option value="খাবার">🍽️ খাবার</option>
+        <option value="যাতায়াত">🚗 যাতায়াত</option>
+        <option value="বিল">⚡ বিল ও ইউটিলিটি</option>
+        <option value="শপিং">🛍️ শপিং</option>
+        <option value="বিনোদন">🎬 বিনোদন</option>
+        <option value="স্বাস্থ্য">💊 স্বাস্থ্য</option>
+        <option value="শিক্ষা">📚 শিক্ষা</option>
+        <option value="বেতন">💼 বেতন</option>
+        <option value="ব্যবসা">🏪 ব্যবসা</option>
+        <option value="অন্যান্য">📦 অন্যান্য</option>
+      </select>
+    </div>
+    <button class="btn-gold" onclick="addTransaction()">যোগ করুন</button>
+    <div style="margin-top:10px;">
+      <button class="btn-outline" style="width:100%;" onclick="closeModal()">বাতিল</button>
+    </div>
+  </div>
+</div>
+
+<!-- MONTH PICKER -->
+<div class="overlay-bg" id="overlay-bg" onclick="closeMonthPicker()"></div>
+<div class="month-modal" id="month-modal">
+  <div style="font-weight:600;font-size:15px;">মাস বেছে নিন</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
+    <button class="btn-icon" style="width:36px;height:36px;font-size:16px;" onclick="changeYear(-1)">‹</button>
+    <span id="year-label" style="font-weight:600;font-size:16px;">2026</span>
+    <button class="btn-icon" style="width:36px;height:36px;font-size:16px;" onclick="changeYear(1)">›</button>
+  </div>
+  <div class="month-grid" id="month-grid"></div>
+</div>
+
+<script>
+// ─── PROFILE PICTURE ──────────────────────────────────────────────────────────
+let pendingPicBase64 = null; // used during onboarding before state exists
+
+function handlePicUpload(input, circleId, saveImmediately = false) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const base64 = e.target.result;
+    // Compress/resize via canvas
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const MAX = 300;
+      let w = img.width, h = img.height;
+      if (w > h) { if (w > MAX) { h = h * MAX / w; w = MAX; } }
+      else { if (h > MAX) { w = w * MAX / h; h = MAX; } }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const compressed = canvas.toDataURL('image/jpeg', 0.75);
+
+      // Update the circle preview
+      const circle = document.getElementById(circleId);
+      circle.innerHTML = `<img src="${compressed}" alt="profile">`;
+
+      if (saveImmediately && state.profile) {
+        state.profile.pic = compressed;
+        save();
+        updateAllAvatars();
+        document.getElementById('remove-pic-btn').style.display = 'block';
+      } else {
+        pendingPicBase64 = compressed;
+      }
+    };
+    img.src = base64;
+  };
+  reader.readAsDataURL(file);
+}
+
+function removePic() {
+  if (!confirm('প্রোফাইল ছবি সরাবেন?')) return;
+  state.profile.pic = null;
+  save();
+  updateAllAvatars();
+  renderProfile();
+}
+
+function updateAllAvatars() {
+  const p = state.profile;
+  const headerAv = document.getElementById('header-avatar');
+  if (p.pic) {
+    headerAv.innerHTML = `<img src="${p.pic}" alt="avatar">`;
+  } else {
+    headerAv.innerHTML = p.name[0].toUpperCase();
+  }
+}
+
+// ─── DATA ─────────────────────────────────────────────────────────────────────
+const MONTHS_BN = ['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
+const CAT_ICONS = { খাবার:'🍽️',যাতায়াত:'🚗',বিল:'⚡',শপিং:'🛍️',বিনোদন:'🎬',স্বাস্থ্য:'💊',শিক্ষা:'📚',বেতন:'💼',ব্যবসা:'🏪',অন্যান্য:'📦',সঞ্চয়:'✨',বিনিয়োগ:'📈' };
+const CAT_COLORS = ['#f87171','#fb923c','#fbbf24','#a3e635','#34d399','#22d3ee','#60a5fa','#a78bfa','#f472b6','#94a3b8'];
+
+let state = {
+  profile: null,
+  transactions: [],
+  budgets: {},
+  currentMonth: new Date().getMonth(),
+  currentYear: new Date().getFullYear(),
+  pickerYear: new Date().getFullYear()
+};
+
+let txType = 'expense';
+let weekChartInst = null, pieChartInst = null, trendChartInst = null;
+
+function load() {
+  const saved = localStorage.getItem('finflow_v2');
+  if (saved) state = { ...state, ...JSON.parse(saved) };
+}
+function save() {
+  localStorage.setItem('finflow_v2', JSON.stringify(state));
+}
+function fmt(n) { return '৳ ' + Number(n).toLocaleString('en-IN'); }
+function fmtN(n) { return Number(n).toLocaleString('en-IN'); }
+
+// ─── ONBOARDING ───────────────────────────────────────────────────────────────
+function completeOnboarding() {
+  const name = document.getElementById('ob-name').value.trim();
+  const income = parseFloat(document.getElementById('ob-income').value) || 0;
+  const savePct = parseFloat(document.getElementById('ob-saving-pct').value) || 20;
+  if (!name) { alert('নাম দিন'); return; }
+  state.profile = { name, income, savePct, pic: pendingPicBase64 || null };
+  save();
+  document.getElementById('onboarding').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  initApp();
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+function initApp() {
+  if (!state.profile) return;
+  const p = state.profile;
+  updateAllAvatars();
+  document.getElementById('month-badge').textContent = MONTHS_BN[state.currentMonth] + ' ' + state.currentYear;
+  document.getElementById('tx-date').valueAsDate = new Date();
+  renderDashboard();
+  renderTracker();
+  renderBudget();
+}
+
+// ─── NAVIGATION ───────────────────────────────────────────────────────────────
+function goPage(pg) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + pg).classList.add('active');
+  document.getElementById('nav-' + pg).classList.add('active');
+  if (pg === 'analytics') renderAnalytics();
+  if (pg === 'profile') renderProfile();
+}
+
+// ─── MONTH FILTER ─────────────────────────────────────────────────────────────
+function getMonthTx() {
+  return state.transactions.filter(t => {
+    const d = new Date(t.date);
+    return d.getMonth() === state.currentMonth && d.getFullYear() === state.currentYear;
+  });
+}
+function sumType(txs, type) { return txs.filter(t=>t.type===type).reduce((s,t)=>s+t.amount,0); }
+function sumCat(txs, cat) { return txs.filter(t=>t.category===cat && t.type==='expense').reduce((s,t)=>s+t.amount,0); }
+
+// ─── DASHBOARD ────────────────────────────────────────────────────────────────
+function renderDashboard() {
+  const txs = getMonthTx();
+  const income = sumType(txs,'income');
+  const expense = sumType(txs,'expense');
+  const saving = sumType(txs,'saving');
+  const invest = sumType(txs,'invest');
+  const balance = income - expense - saving - invest;
+
+  document.getElementById('dash-balance').textContent = fmt(balance);
+  document.getElementById('dash-income').textContent = fmt(income);
+  document.getElementById('dash-expense').textContent = fmt(expense);
+  document.getElementById('dash-saving').textContent = fmt(saving);
+  document.getElementById('dash-invest').textContent = fmt(invest);
+
+  const profileIncome = state.profile.income || income || 1;
+  const budgetUsed = expense / profileIncome * 100;
+  const pctLabel = Math.min(budgetUsed, 100).toFixed(0) + '%';
+  document.getElementById('budget-pct-label').textContent = pctLabel;
+  const fill = document.getElementById('budget-fill');
+  fill.style.width = Math.min(budgetUsed, 100) + '%';
+  fill.style.background = budgetUsed > 90 ? 'var(--red)' : budgetUsed > 70 ? 'var(--gold)' : 'var(--green)';
+
+  // Alerts
+  const alerts = [];
+  if (budgetUsed >= 100) alerts.push({ type:'danger', msg:'⚠️ এই মাসে আপনার মোট খরচ আয় ছাড়িয়ে গেছে!' });
+  else if (budgetUsed >= 80) alerts.push({ type:'warn', msg:'⚠️ সতর্কতা: আপনার মাসিক বাজেটের ' + pctLabel + ' ইতিমধ্যে ব্যয় হয়েছে।' });
+  Object.entries(state.budgets).forEach(([cat, limit]) => {
+    const spent = sumCat(txs, cat);
+    if (spent >= limit) alerts.push({ type:'danger', msg:`🚨 ${cat} বাজেট (${fmt(limit)}) শেষ! ব্যয়: ${fmt(spent)}` });
+  });
+  const alertArea = document.getElementById('alert-area');
+  alertArea.innerHTML = alerts.map(a => `<div class="alert ${a.type==='warn'?'alert-warn':''}">${a.msg}</div>`).join('');
+
+  // Recent
+  const recent = [...txs].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+  document.getElementById('recent-tx').innerHTML = recent.length
+    ? recent.map(txHTML).join('')
+    : '<div class="empty"><div class="empty-icon">📋</div><p>কোনো লেনদেন নেই</p></div>';
+
+  // Week chart
+  renderWeekChart();
+}
+
+function renderWeekChart() {
+  const days = [];
+  const vals = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const label = d.toLocaleDateString('bn-BD',{weekday:'short'});
+    days.push(label);
+    const dayStr = d.toISOString().split('T')[0];
+    const sum = state.transactions.filter(t => t.date === dayStr && t.type === 'expense').reduce((s,t)=>s+t.amount,0);
+    vals.push(sum);
+  }
+  const ctx = document.getElementById('weekChart').getContext('2d');
+  if (weekChartInst) weekChartInst.destroy();
+  weekChartInst = new Chart(ctx, {
+    type:'bar',
+    data: { labels:days, datasets:[{ data:vals, backgroundColor:'rgba(240,180,41,0.25)', borderColor:'var(--gold)', borderWidth:2, borderRadius:8 }] },
+    options: { plugins:{legend:{display:false}}, scales:{ x:{grid:{display:false},ticks:{color:'#4b6080'}}, y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#4b6080',callback:v=>'৳'+v}} }, responsive:true, maintainAspectRatio:false }
+  });
+}
+
+// ─── TRANSACTION HTML ─────────────────────────────────────────────────────────
+function txHTML(t, showDelete = false) {
+  const icon = CAT_ICONS[t.category] || '📦';
+  const amtCls = t.type === 'income' ? 'pos' : 'neg';
+  const amtPrefix = t.type === 'income' ? '+' : '-';
+  const bgColor = t.type==='income'?'var(--green-dim)':t.type==='saving'?'var(--gold-dim)':t.type==='invest'?'var(--purple-dim)':'var(--red-dim)';
+  const d = new Date(t.date);
+  const dateStr = d.toLocaleDateString('bn-BD',{day:'numeric',month:'short'});
+  return `<div class="tx-item">
+    <div class="tx-icon" style="background:${bgColor}">${icon}</div>
+    <div class="tx-info">
+      <div class="tx-name">${t.desc}</div>
+      <div class="tx-meta">${t.category} · ${dateStr}</div>
+    </div>
+    <div class="tx-amt ${t.type==='income'?'pos':'neg'}">${amtPrefix}${fmt(t.amount)}</div>
+    ${showDelete?`<button class="tx-delete" onclick="deleteTx('${t.id}')">🗑</button>`:''}
+  </div>`;
+}
+
+// ─── TRACKER ─────────────────────────────────────────────────────────────────
+let txFilter = 'all';
+function renderTracker(filter) {
+  if (filter) txFilter = filter;
+  let txs = getMonthTx();
+  if (txFilter !== 'all') txs = txs.filter(t => t.type === txFilter);
+  txs.sort((a,b) => new Date(b.date) - new Date(a.date));
+  document.getElementById('tx-list').innerHTML = txs.length
+    ? txs.map(t => txHTML(t, true)).join('')
+    : '<div class="empty"><div class="empty-icon">💳</div><p>কোনো লেনদেন পাওয়া যায়নি</p></div>';
+}
+
+function filterTx(type, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTracker(type);
+}
+
+function deleteTx(id) {
+  if (!confirm('এই লেনদেন মুছবেন?')) return;
+  state.transactions = state.transactions.filter(t => t.id !== id);
+  save(); renderTracker(); renderDashboard();
+}
+
+// ─── MODAL ────────────────────────────────────────────────────────────────────
+function openAddModal() {
+  document.getElementById('add-modal').classList.add('open');
+  document.getElementById('tx-date').valueAsDate = new Date();
+  setType('expense');
+}
+function closeModal() { document.getElementById('add-modal').classList.remove('open'); }
+
+function setType(type) {
+  txType = type;
+  ['expense','income','saving','invest'].forEach(t => {
+    const btn = document.getElementById('type-' + t);
+    btn.className = 'type-btn';
+    if (t === type) btn.className = 'type-btn active-' + t;
+  });
+  document.getElementById('cat-group').style.display = (type === 'saving' || type === 'invest') ? 'none' : 'block';
+}
+
+function addTransaction() {
+  const desc = document.getElementById('tx-desc').value.trim();
+  const amount = parseFloat(document.getElementById('tx-amount').value);
+  const date = document.getElementById('tx-date').value;
+  const cat = txType === 'saving' ? 'সঞ্চয়' : txType === 'invest' ? 'বিনিয়োগ' : document.getElementById('tx-cat').value;
+
+  if (!desc || !amount || !date) { alert('সব তথ্য পূরণ করুন'); return; }
+
+  state.transactions.push({ id: Date.now().toString(), type: txType, desc, amount, date, category: cat });
+  save();
+  document.getElementById('tx-desc').value = '';
+  document.getElementById('tx-amount').value = '';
+  closeModal();
+  renderDashboard();
+  renderTracker();
+  renderBudget();
+}
+
+// ─── BUDGET ───────────────────────────────────────────────────────────────────
+function saveBudget() {
+  const cat = document.getElementById('budget-cat').value;
+  const limit = parseFloat(document.getElementById('budget-limit').value);
+  if (!limit || limit <= 0) { alert('সঠিক সীমা দিন'); return; }
+  state.budgets[cat] = limit;
+  save(); renderBudget();
+}
+
+function renderBudget() {
+  const txs = getMonthTx();
+  const entries = Object.entries(state.budgets);
+  if (!entries.length) {
+    document.getElementById('budget-list').innerHTML = '<div class="empty"><div class="empty-icon">🎯</div><p>কোনো বাজেট সেট করা হয়নি</p></div>';
+    return;
+  }
+  document.getElementById('budget-list').innerHTML = entries.map(([cat, limit]) => {
+    const spent = sumCat(txs, cat);
+    const pct = Math.min(spent / limit * 100, 100);
+    const cls = pct >= 100 ? 'over' : pct >= 80 ? 'warn' : 'ok';
+    const icon = CAT_ICONS[cat] || '📦';
+    return `<div class="budget-item">
+      <div class="budget-top">
+        <div class="budget-name">${icon} ${cat}</div>
+        <div class="budget-vals">${fmt(spent)} / ${fmt(limit)}</div>
+      </div>
+      <div class="budget-track"><div class="budget-fill ${cls}" style="width:${pct}%"></div></div>
+      ${pct>=100?'<div style="font-size:11px;color:var(--red);margin-top:4px;">⚠️ বাজেট শেষ!</div>':pct>=80?'<div style="font-size:11px;color:var(--gold);margin-top:4px;">⚠️ সীমার কাছাকাছি</div>':''}
+    </div>`;
+  }).join('');
+}
+
+// ─── ANALYTICS ────────────────────────────────────────────────────────────────
+let analyticsTab = 'pie';
+function switchAnalyticsTab(tab, btn) {
+  analyticsTab = tab;
+  document.querySelectorAll('#page-analytics .tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('analytics-pie').style.display = tab === 'pie' ? 'block' : 'none';
+  document.getElementById('analytics-trend').style.display = tab === 'trend' ? 'block' : 'none';
+  document.getElementById('analytics-stats').style.display = tab === 'stats' ? 'block' : 'none';
+  renderAnalytics();
+}
+
+function renderAnalytics() {
+  if (analyticsTab === 'pie') renderPieChart();
+  else if (analyticsTab === 'trend') renderTrendChart();
+  else renderStats();
+}
+
+function renderPieChart() {
+  const txs = getMonthTx().filter(t => t.type === 'expense');
+  const catMap = {};
+  txs.forEach(t => { catMap[t.category] = (catMap[t.category] || 0) + t.amount; });
+  const labels = Object.keys(catMap);
+  const data = Object.values(catMap);
+
+  if (!labels.length) {
+    document.querySelector('#analytics-pie .chart-wrap canvas').style.display = 'none';
+    document.getElementById('cat-breakdown').innerHTML = '<div class="empty"><p>এই মাসে কোনো খরচ নেই</p></div>';
+    return;
+  }
+
+  const ctx = document.getElementById('pieChart').getContext('2d');
+  if (pieChartInst) pieChartInst.destroy();
+  pieChartInst = new Chart(ctx, {
+    type:'doughnut',
+    data: { labels, datasets:[{ data, backgroundColor: CAT_COLORS.slice(0, labels.length), borderWidth:0, hoverOffset:8 }] },
+    options: { plugins:{ legend:{ position:'bottom', labels:{ color:'#94a3b8', font:{size:11}, padding:14 } } }, responsive:true, maintainAspectRatio:false, cutout:'65%' }
+  });
+
+  const total = data.reduce((s,v)=>s+v,0);
+  document.getElementById('cat-breakdown').innerHTML = labels.map((l,i) => `
+    <div class="stat-row">
+      <div class="stat-key" style="display:flex;align-items:center;gap:8px;">
+        <span style="width:10px;height:10px;border-radius:50%;background:${CAT_COLORS[i]};display:inline-block;"></span>
+        ${CAT_ICONS[l]||'📦'} ${l}
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <span style="font-size:11px;color:var(--text3);">${(data[i]/total*100).toFixed(0)}%</span>
+        <span class="stat-val">${fmt(data[i])}</span>
+      </div>
+    </div>`).join('');
+}
+
+function renderTrendChart() {
+  const months = [];
+  const incomeData = [], expenseData = [], savingData = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(state.currentYear, state.currentMonth - i, 1);
+    months.push(MONTHS_BN[d.getMonth()].slice(0,3));
+    const mo = d.getMonth(), yr = d.getFullYear();
+    const txs = state.transactions.filter(t => { const dd = new Date(t.date); return dd.getMonth()===mo && dd.getFullYear()===yr; });
+    incomeData.push(sumType(txs,'income'));
+    expenseData.push(sumType(txs,'expense'));
+    savingData.push(sumType(txs,'saving') + sumType(txs,'invest'));
+  }
+  const ctx = document.getElementById('trendChart').getContext('2d');
+  if (trendChartInst) trendChartInst.destroy();
+  trendChartInst = new Chart(ctx, {
+    type:'line',
+    data: { labels:months, datasets:[
+      { label:'আয়', data:incomeData, borderColor:'#34d399', tension:.4, fill:false, pointRadius:5 },
+      { label:'খরচ', data:expenseData, borderColor:'#f87171', tension:.4, fill:false, pointRadius:5 },
+      { label:'সঞ্চয়+বিনিয়োগ', data:savingData, borderColor:'#f0b429', tension:.4, fill:false, pointRadius:5 }
+    ]},
+    options: { plugins:{ legend:{ labels:{color:'#94a3b8', font:{size:11}} } }, scales:{ x:{grid:{display:false}, ticks:{color:'#4b6080'}}, y:{grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#4b6080', callback:v=>'৳'+v}} }, responsive:true, maintainAspectRatio:false }
+  });
+}
+
+function renderStats() {
+  const txs = getMonthTx();
+  const income = sumType(txs,'income');
+  const expense = sumType(txs,'expense');
+  const saving = sumType(txs,'saving');
+  const invest = sumType(txs,'invest');
+  const totalSave = saving + invest;
+  const saveRate = income > 0 ? (totalSave / income * 100).toFixed(1) : 0;
+  const target = state.profile.savePct || 20;
+  const maxExpense = txs.filter(t=>t.type==='expense').sort((a,b)=>b.amount-a.amount)[0];
+
+  document.getElementById('stats-content').innerHTML = `
+    <div class="stat-row"><div class="stat-key">মোট আয়</div><div class="stat-val" style="color:var(--green)">${fmt(income)}</div></div>
+    <div class="stat-row"><div class="stat-key">মোট খরচ</div><div class="stat-val" style="color:var(--red)">${fmt(expense)}</div></div>
+    <div class="stat-row"><div class="stat-key">সঞ্চয়+বিনিয়োগ</div><div class="stat-val" style="color:var(--gold)">${fmt(totalSave)}</div></div>
+    <div class="stat-row"><div class="stat-key">সঞ্চয় হার</div><div class="stat-val ${parseFloat(saveRate)>=target?'':''}">
+      ${saveRate}% <span class="badge ${parseFloat(saveRate)>=target?'badge-green':'badge-red'}">${parseFloat(saveRate)>=target?'✓ লক্ষ্য পূরণ':'× লক্ষ্যহীন'}</span></div></div>
+    <div class="stat-row"><div class="stat-key">সর্বোচ্চ একক খরচ</div><div class="stat-val">${maxExpense ? fmt(maxExpense.amount)+' ('+maxExpense.desc+')' : '—'}</div></div>
+    <div class="stat-row"><div class="stat-key">মোট লেনদেন</div><div class="stat-val">${txs.length}টি</div></div>
+  `;
+
+  const tips = generateTips(income, expense, saving, invest, saveRate, target);
+  document.getElementById('tips-list').innerHTML = tips.map(t => `
+    <div class="tip-card"><div class="tip-icon">${t.icon}</div>
+    <div class="tip-text"><strong>${t.title}</strong>${t.body}</div></div>`).join('');
+}
+
+function generateTips(income, expense, saving, invest, saveRate, target) {
+  const tips = [];
+  const saveRateN = parseFloat(saveRate);
+  if (saveRateN < target) tips.push({ icon:'💡', title:'সঞ্চয় বাড়ান', body:`আপনার লক্ষ্য ${target}%, কিন্তু এখন ${saveRateN}%। প্রতিদিনের ছোট খরচ কমিয়ে পার্থক্য তৈরি করুন।` });
+  if (invest === 0) tips.push({ icon:'📈', title:'বিনিয়োগ শুরু করুন', body:'আয়ের অন্তত ১০% বিনিয়োগে রাখুন। DPS, মিউচুয়াল ফান্ড বা সঞ্চয়পত্র দিয়ে শুরু করতে পারেন।' });
+  if (expense > income * 0.7) tips.push({ icon:'✂️', title:'খরচ কমান', body:'আপনার খরচ আয়ের ৭০%+ ছাড়িয়েছে। অপ্রয়োজনীয় শপিং ও বিনোদন খরচ কমানোর চেষ্টা করুন।' });
+  tips.push({ icon:'🎯', title:'৫০/৩০/২০ নিয়ম', body:'আয়ের ৫০% প্রয়োজনীয় খরচে, ৩০% চাহিদায়, ২০% সঞ্চয়ে রাখুন — এটি একটি কার্যকর বাজেট পদ্ধতি।' });
+  tips.push({ icon:'🕌', title:'ইসলামিক অর্থনীতি', body:'আয়ের ২.৫% যাকাত দিন এবং সুদমুক্ত বিনিয়োগ বেছে নিন — এটি আপনার সম্পদে বরকত আনবে।' });
+  return tips;
+}
+
+// ─── PROFILE ─────────────────────────────────────────────────────────────────
+function renderProfile() {
+  const p = state.profile;
+  document.getElementById('p-name').value = p.name;
+  document.getElementById('p-income').value = p.income;
+  document.getElementById('p-saving-pct').value = p.savePct;
+
+  // Update pic circle in profile page
+  const circle = document.getElementById('profile-pic-circle');
+  if (p.pic) {
+    circle.innerHTML = `<img src="${p.pic}" alt="profile">`;
+    document.getElementById('remove-pic-btn').style.display = 'block';
+  } else {
+    circle.innerHTML = p.name[0].toUpperCase();
+    document.getElementById('remove-pic-btn').style.display = 'none';
+  }
+
+  // Profile header card
+  const avatarHTML = p.pic
+    ? `<div class="profile-avatar-big"><img src="${p.pic}" alt="profile"></div>`
+    : `<div class="profile-avatar-big">${p.name[0].toUpperCase()}</div>`;
+
+  document.getElementById('profile-header').innerHTML = `
+    <div class="card" style="text-align:center;margin-bottom:14px;">
+      ${avatarHTML}
+      <div class="profile-name-big">${p.name}</div>
+      <div class="profile-sub">মাসিক আয়: ${fmt(p.income)} · সঞ্চয় লক্ষ্য: ${p.savePct}%</div>
+    </div>`;
+
+  const all = state.transactions;
+  const totalIncome = all.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const totalExp = all.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const totalSave = all.filter(t=>t.type==='saving'||t.type==='invest').reduce((s,t)=>s+t.amount,0);
+  document.getElementById('profile-stats').innerHTML = `
+    <div class="stat-row"><div class="stat-key">মোট লেনদেন</div><div class="stat-val">${all.length}টি</div></div>
+    <div class="stat-row"><div class="stat-key">সর্বমোট আয়</div><div class="stat-val" style="color:var(--green)">${fmt(totalIncome)}</div></div>
+    <div class="stat-row"><div class="stat-key">সর্বমোট খরচ</div><div class="stat-val" style="color:var(--red)">${fmt(totalExp)}</div></div>
+    <div class="stat-row"><div class="stat-key">সর্বমোট সঞ্চয়</div><div class="stat-val" style="color:var(--gold)">${fmt(totalSave)}</div></div>
+  `;
+}
+
+function saveProfile() {
+  state.profile.name = document.getElementById('p-name').value.trim() || state.profile.name;
+  state.profile.income = parseFloat(document.getElementById('p-income').value) || state.profile.income;
+  state.profile.savePct = parseFloat(document.getElementById('p-saving-pct').value) || state.profile.savePct;
+  save();
+  updateAllAvatars();
+  renderProfile(); renderDashboard();
+  alert('প্রোফাইল সেভ হয়েছে ✓');
+}
+
+function resetApp() {
+  if (confirm('সব ডেটা মুছবেন? এটি পূর্বাবস্থায় ফেরানো যাবে না।')) {
+    localStorage.removeItem('finflow_v2');
+    location.reload();
+  }
+}
+
+// ─── MONTH PICKER ─────────────────────────────────────────────────────────────
+function openMonthPicker() {
+  state.pickerYear = state.currentYear;
+  document.getElementById('year-label').textContent = state.pickerYear;
+  renderMonthGrid();
+  document.getElementById('overlay-bg').classList.add('open');
+  document.getElementById('month-modal').classList.add('open');
+}
+function closeMonthPicker() {
+  document.getElementById('overlay-bg').classList.remove('open');
+  document.getElementById('month-modal').classList.remove('open');
+}
+function changeYear(d) {
+  state.pickerYear += d;
+  document.getElementById('year-label').textContent = state.pickerYear;
+  renderMonthGrid();
+}
+function renderMonthGrid() {
+  document.getElementById('month-grid').innerHTML = MONTHS_BN.map((m,i) => `
+    <div class="month-item ${i===state.currentMonth && state.pickerYear===state.currentYear?'selected':''}"
+      onclick="selectMonth(${i})">
+      ${m.slice(0,3)}
+    </div>`).join('');
+}
+function selectMonth(m) {
+  state.currentMonth = m;
+  state.currentYear = state.pickerYear;
+  save();
+  closeMonthPicker();
+  document.getElementById('month-badge').textContent = MONTHS_BN[m] + ' ' + state.currentYear;
+  renderDashboard(); renderTracker(); renderBudget();
+  if (analyticsTab) renderAnalytics();
+}
+
+// ─── BOOT ─────────────────────────────────────────────────────────────────────
+load();
+if (state.profile) {
+  document.getElementById('onboarding').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  initApp();
+}
+</script>
+</body>
+</html>
